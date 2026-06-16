@@ -8,9 +8,15 @@ interface LeaderboardProps {
   /** Limit the individual list (e.g. top 5 on the waiting screen). */
   topN?: number
   defaultTab?: 'individual' | 'teams'
+  /** Highlight the current player's row (and append it if outside topN). */
+  meId?: string
+  /** Highlight the current player's team. */
+  myTeamId?: string
 }
 
 const MEDALS = ['🥇', '🥈', '🥉']
+
+const HIGHLIGHT = 'ring-2 ring-magenta ring-offset-2 ring-offset-slate-950'
 
 function rankStyle(index: number): string {
   switch (index) {
@@ -30,6 +36,8 @@ export function Leaderboard({
   teams,
   topN,
   defaultTab = 'individual',
+  meId,
+  myTeamId,
 }: LeaderboardProps) {
   const [tab, setTab] = useState<'individual' | 'teams'>(defaultTab)
 
@@ -43,6 +51,12 @@ export function Leaderboard({
     [players],
   )
   const shownPlayers = topN ? rankedPlayers.slice(0, topN) : rankedPlayers
+
+  // If "me" is outside the visible slice, append my row so I can always see
+  // where I stand.
+  const myRank = meId ? rankedPlayers.findIndex((p) => p.id === meId) : -1
+  const meHidden =
+    meId != null && myRank >= 0 && !shownPlayers.some((p) => p.id === meId)
 
   const rankedTeams = useMemo(
     () => [...teams].sort((a, b) => b.gp - a.gp),
@@ -77,12 +91,19 @@ export function Leaderboard({
                 <motion.li
                   layout
                   key={p.id}
-                  className={`flex items-center gap-3 rounded-xl border bg-gradient-to-r px-4 py-3 ${rankStyle(i)}`}
+                  className={`flex items-center gap-3 rounded-xl border bg-gradient-to-r px-4 py-3 ${rankStyle(i)} ${
+                    p.id === meId ? HIGHLIGHT : ''
+                  }`}
                 >
                   <span className="w-8 text-center text-lg font-bold">
                     {MEDALS[i] ?? i + 1}
                   </span>
-                  <span className="flex-1 truncate font-semibold">{p.name}</span>
+                  <span className="flex-1 truncate font-semibold">
+                    {p.name}
+                    {p.id === meId && (
+                      <span className="ml-1 text-xs text-magenta-bright">(you)</span>
+                    )}
+                  </span>
                   {team && (
                     <span
                       className="rounded-full px-2 py-0.5 text-xs font-medium text-black/80"
@@ -97,6 +118,39 @@ export function Leaderboard({
                 </motion.li>
               )
             })}
+            {meHidden && (
+              <>
+                <li className="py-1 text-center text-slate-500">⋯</li>
+                {(() => {
+                  const p = rankedPlayers[myRank]
+                  const team = p.team ? teamById[p.team] : undefined
+                  return (
+                    <li
+                      className={`flex items-center gap-3 rounded-xl border border-white/10 bg-gradient-to-r from-white/5 to-white/0 px-4 py-3 ${HIGHLIGHT}`}
+                    >
+                      <span className="w-8 text-center text-lg font-bold">
+                        {myRank + 1}
+                      </span>
+                      <span className="flex-1 truncate font-semibold">
+                        {p.name}
+                        <span className="ml-1 text-xs text-magenta-bright">(you)</span>
+                      </span>
+                      {team && (
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs font-medium text-black/80"
+                          style={{ backgroundColor: team.color ?? '#888' }}
+                        >
+                          {team.name}
+                        </span>
+                      )}
+                      <span className="w-14 text-right font-mono text-lg font-bold text-cyan-accent">
+                        {p.ip}
+                      </span>
+                    </li>
+                  )
+                })()}
+              </>
+            )}
           </motion.ul>
         ) : (
           <motion.ul
@@ -114,7 +168,9 @@ export function Leaderboard({
                 <motion.li
                   layout
                   key={t.id}
-                  className={`rounded-xl border bg-gradient-to-r px-4 py-3 ${rankStyle(i)}`}
+                  className={`rounded-xl border bg-gradient-to-r px-4 py-3 ${rankStyle(i)} ${
+                    t.id === myTeamId ? HIGHLIGHT : ''
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-8 text-center text-lg font-bold">
@@ -124,7 +180,14 @@ export function Leaderboard({
                       className="h-3 w-3 rounded-full"
                       style={{ backgroundColor: t.color ?? '#888' }}
                     />
-                    <span className="flex-1 truncate font-semibold">{t.name}</span>
+                    <span className="flex-1 truncate font-semibold">
+                      {t.name}
+                      {t.id === myTeamId && (
+                        <span className="ml-1 text-xs text-magenta-bright">
+                          (your team)
+                        </span>
+                      )}
+                    </span>
                     <span className="w-14 text-right font-mono text-lg font-bold text-magenta-bright">
                       {t.gp}
                     </span>

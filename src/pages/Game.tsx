@@ -134,7 +134,12 @@ export function Game() {
                 </p>
               )}
             </div>
-            <Leaderboard players={session.players} teams={session.teams} />
+            <Leaderboard
+              players={session.players}
+              teams={session.teams}
+              meId={playerId!}
+              myTeamId={session.players.find((p) => p.id === playerId)?.team}
+            />
           </div>
         )
 
@@ -178,7 +183,12 @@ export function Game() {
                 )}
               </div>
             </motion.div>
-            <Leaderboard players={session.players} teams={session.teams} />
+            <Leaderboard
+              players={session.players}
+              teams={session.teams}
+              meId={playerId!}
+              myTeamId={session.players.find((p) => p.id === playerId)?.team}
+            />
           </div>
         )
       }
