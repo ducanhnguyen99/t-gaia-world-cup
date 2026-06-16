@@ -6,7 +6,7 @@ import {
   update,
 } from 'firebase/database'
 import { db } from '../firebase-config'
-import type { GameId, Player, SessionStatus } from '../types'
+import type { GameConfig, GameId, Player, SessionStatus, Team } from '../types'
 import { generateTeamNames, teamColor } from './teamNames'
 
 /** Create (or reset) a session in lobby state, preserving any existing players. */
@@ -14,7 +14,7 @@ export async function createSession(sessionId: string) {
   await update(ref(db, `sessions/${sessionId}`), {
     status: 'lobby' as SessionStatus,
     currentGame: null,
-    currentRound: 1,
+    currentRound: 0,
     nextGame: null,
     gameConfig: { timer: 60, rounds: 10 },
     createdAt: serverTimestamp(),
@@ -69,8 +69,78 @@ export async function resetGames(sessionId: string) {
   await update(ref(db, `sessions/${sessionId}`), {
     status: 'lobby' as SessionStatus,
     currentGame: null,
-    currentRound: 1,
+    currentRound: 0,
   })
+}
+
+// ---------- Game control (Phase 3) ----------
+
+/** Start a game: write config, create the instance, flip session to playing. */
+export async function startGame(
+  sessionId: string,
+  gameId: GameId,
+  round: number,
+  config: GameConfig,
+) {
+  await update(ref(db, `sessions/${sessionId}`), {
+    currentGame: gameId,
+    currentRound: round,
+    status: 'playing' as SessionStatus,
+    nextGame: null,
+    gameConfig: config,
+  })
+  await update(ref(db, `sessions/${sessionId}/games/${gameId}_${round}`), {
+    status: 'active',
+    startedAt: serverTimestamp(),
+  })
+}
+
+/** "Play Again": same game, next round, fresh instance. Returns the new round. */
+export async function playAgain(
+  sessionId: string,
+  gameId: GameId,
+  currentRound: number,
+  config: GameConfig,
+): Promise<number> {
+  const next = currentRound + 1
+  await startGame(sessionId, gameId, next, config)
+  return next
+}
+
+/** End the active game: apply IP/GP deltas to totals, then go to reveal. */
+export async function applyScoresAndReveal(
+  sessionId: string,
+  ipUpdates: Record<string, number>,
+  gpUpdates: Record<string, number>,
+  players: Player[],
+  teams: Team[],
+) {
+  const updates: Record<string, unknown> = {}
+  for (const p of players) {
+    const gained = ipUpdates[p.id] ?? 0
+    if (gained) updates[`players/${p.id}/ip`] = p.ip + gained
+  }
+  for (const t of teams) {
+    const gained = gpUpdates[t.id] ?? 0
+    if (gained) updates[`teams/${t.id}/gp`] = t.gp + gained
+  }
+  updates['status'] = 'revealing'
+  await update(ref(db, `sessions/${sessionId}`), updates)
+}
+
+/** Manual external-game scoring: add raw IP to a player / GP to a team. */
+export async function applyExternalScore(
+  sessionId: string,
+  player: Player | null,
+  ipDelta: number,
+  team: Team | null,
+  gpDelta: number,
+) {
+  const updates: Record<string, unknown> = {}
+  if (player && ipDelta) updates[`players/${player.id}/ip`] = player.ip + ipDelta
+  if (team && gpDelta) updates[`teams/${team.id}/gp`] = team.gp + gpDelta
+  if (Object.keys(updates).length)
+    await update(ref(db, `sessions/${sessionId}`), updates)
 }
 
 /** Wipe everything (players, teams, games) and start a clean lobby. */
@@ -78,7 +148,7 @@ export async function hardResetSession(sessionId: string) {
   await set(ref(db, `sessions/${sessionId}`), {
     status: 'lobby' as SessionStatus,
     currentGame: null,
-    currentRound: 1,
+    currentRound: 0,
     nextGame: null,
     gameConfig: { timer: 60, rounds: 10 },
     createdAt: serverTimestamp(),

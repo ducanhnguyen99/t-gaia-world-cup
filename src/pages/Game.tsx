@@ -10,6 +10,7 @@ import { usePlayer } from '../hooks/usePlayer'
 import { useSession } from '../hooks/useSession'
 import { usePresence } from '../hooks/usePresence'
 import { GAME_BY_ID } from '../utils/games'
+import { GAME_COMPONENTS } from '../games/registry'
 
 export function Game() {
   const navigate = useNavigate()
@@ -86,18 +87,21 @@ export function Game() {
           />
         )
 
-      case 'playing':
+      case 'playing': {
+        if (!session.currentGame) {
+          return <CenterCard icon="🎮" title="Game starting…" />
+        }
+        const GameComponent = GAME_COMPONENTS[session.currentGame]
         return (
-          <CenterCard
-            icon={session.currentGame ? GAME_BY_ID[session.currentGame].icon : '🎮'}
-            title={
-              session.currentGame
-                ? GAME_BY_ID[session.currentGame].name
-                : 'Game starting…'
-            }
-            subtitle={`Round ${session.currentRound} — game UI arrives in Phase 4`}
+          <GameComponent
+            sessionId={sessionId}
+            playerId={playerId!}
+            round={session.currentRound}
+            config={session.gameConfig}
+            players={session.players}
           />
         )
+      }
 
       case 'revealing':
         return <CenterCard icon="🥁" title="Revealing results…" subtitle="Phase 5" />

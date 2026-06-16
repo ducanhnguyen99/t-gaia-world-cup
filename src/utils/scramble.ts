@@ -1,0 +1,46 @@
+// Small seeded PRNG (mulberry32) so the scramble is identical for every player
+// and stable across re-renders.
+function mulberry32(seed: number) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function hash(str: string): number {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
+/**
+ * Deterministically scramble a word's letters (seeded by the word), guaranteeing
+ * the result differs from the original. Same input → same output for everyone.
+ */
+export function scramble(word: string): string {
+  const chars = word.split('')
+  if (new Set(chars).size <= 1) return word // can't scramble (all same letter)
+  let out = word
+  let salt = 0
+  while (out === word && salt < 50) {
+    const rng = mulberry32(hash(word) + salt * 2654435761)
+    const a = [...chars]
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1))
+      ;[a[i], a[j]] = [a[j], a[i]]
+    }
+    out = a.join('')
+    salt++
+  }
+  return out
+}
+
+export function normalize(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, ' ')
+}

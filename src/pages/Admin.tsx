@@ -2,17 +2,25 @@ import { useState } from 'react'
 import { Layout } from '../components/Layout'
 import { Leaderboard } from '../components/Leaderboard'
 import { useSession } from '../hooks/useSession'
-import { GAMES } from '../utils/games'
+import { useGameState } from '../hooks/useGameState'
+import { GAMES, GAME_BY_ID } from '../utils/games'
+import { GAME_COMPONENTS } from '../games/registry'
+import { computeRawScores } from '../utils/gameScoring'
+import { calculateGameScores } from '../utils/scoring'
 import {
+  applyExternalScore,
+  applyScoresAndReveal,
   createSession,
   hardResetSession,
+  playAgain,
   randomizeTeams,
   removePlayer,
   resetGames,
   setNextGame,
   setStatus,
+  startGame,
 } from '../utils/admin'
-import type { GameId } from '../types'
+import type { GameConfig, GameId, Player, Team } from '../types'
 
 const ADMIN_PASSWORD = 'tgaia2026'
 const AUTH_KEY = 'tgaia.admin'
@@ -200,11 +208,33 @@ function AdminDashboard() {
           )}
         </Section>
 
-        {/* Flow control (game start lands in Phase 3) */}
-        <Section title="Flow Control">
+        {/* Game control */}
+        <Section title="Game Control">
+          <GameControl
+            sessionId={sessionId}
+            status={session.status}
+            currentGame={session.currentGame}
+            currentRound={session.currentRound}
+            gameConfig={session.gameConfig}
+            players={session.players}
+            teams={session.teams}
+          />
+        </Section>
+
+        {/* External (admin-scored) games */}
+        <Section title="External Game Scores">
+          <ExternalScores
+            sessionId={sessionId}
+            players={session.players}
+            teams={session.teams}
+          />
+        </Section>
+
+        {/* Session flow */}
+        <Section title="Session Flow">
           <div className="mb-3 flex flex-wrap gap-2">
             <FlowButton onClick={() => setStatus(sessionId, 'lobby')}>
-              Lobby
+              Back to Lobby
             </FlowButton>
             <FlowButton onClick={() => setStatus(sessionId, 'between')}>
               🏆 Show Leaderboard
@@ -234,9 +264,6 @@ function AdminDashboard() {
               ))}
             </select>
           </label>
-          <p className="mt-3 text-xs text-slate-500">
-            Game selection &amp; start/reveal controls arrive in Phase 3.
-          </p>
         </Section>
 
         {/* Live standings */}
@@ -315,5 +342,256 @@ function DangerButton({
     >
       {children}
     </button>
+  )
+}
+
+function GameControl({
+  sessionId,
+  status,
+  currentGame,
+  currentRound,
+  gameConfig,
+  players,
+  teams,
+}: {
+  sessionId: string
+  status: string
+  currentGame: GameId | null
+  currentRound: number
+  gameConfig: GameConfig
+  players: Player[]
+  teams: Team[]
+}) {
+  const [selected, setSelected] = useState<GameId>('mathSpeed')
+  const [timer, setTimer] = useState(60)
+  const [rounds, setRounds] = useState(10)
+
+  if (status === 'playing' && currentGame) {
+    return (
+      <HostActiveGame
+        sessionId={sessionId}
+        gameId={currentGame}
+        round={currentRound}
+        config={gameConfig}
+        players={players}
+        teams={teams}
+      />
+    )
+  }
+
+  return (
+    <div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {GAMES.map((g) => (
+          <button
+            key={g.id}
+            onClick={() => setSelected(g.id)}
+            className={`rounded-xl border p-3 text-left transition ${
+              selected === g.id
+                ? 'border-magenta bg-magenta/15 shadow-glow'
+                : 'border-white/10 bg-white/5 hover:bg-white/10'
+            }`}
+          >
+            <div className="text-2xl">{g.icon}</div>
+            <div className="text-sm font-semibold">{g.name}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-end gap-4">
+        {selected === 'mathSpeed' ? (
+          <label className="text-sm">
+            <span className="mb-1 block text-slate-400">Timer (s)</span>
+            <select
+              value={timer}
+              onChange={(e) => setTimer(Number(e.target.value))}
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 outline-none focus:border-magenta"
+            >
+              {[30, 60, 90].map((t) => (
+                <option key={t} value={t} className="bg-slate-900">
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <label className="text-sm">
+            <span className="mb-1 block text-slate-400">Rounds</span>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={rounds}
+              onChange={(e) => setRounds(Number(e.target.value))}
+              className="w-24 rounded-lg border border-white/10 bg-white/5 px-3 py-2 outline-none focus:border-magenta"
+            />
+          </label>
+        )}
+        <button
+          onClick={() =>
+            startGame(sessionId, selected, currentRound + 1, {
+              timer,
+              rounds,
+            })
+          }
+          disabled={players.length === 0}
+          className="rounded-lg bg-magenta px-5 py-2.5 font-bold text-white shadow-glow transition hover:bg-magenta-bright disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          ▶ Start {GAME_BY_ID[selected].name}
+        </button>
+      </div>
+      {players.length === 0 && (
+        <p className="mt-2 text-xs text-slate-500">Add players first.</p>
+      )}
+    </div>
+  )
+}
+
+function HostActiveGame({
+  sessionId,
+  gameId,
+  round,
+  config,
+  players,
+  teams,
+}: {
+  sessionId: string
+  gameId: GameId
+  round: number
+  config: GameConfig
+  players: Player[]
+  teams: Team[]
+}) {
+  const game = useGameState(sessionId, `${gameId}_${round}`)
+  const GameComponent = GAME_COMPONENTS[gameId]
+
+  function endAndReveal() {
+    const raw = computeRawScores(gameId, game)
+    const { ipUpdates, gpUpdates } = calculateGameScores(raw, players, teams, true)
+    void applyScoresAndReveal(sessionId, ipUpdates, gpUpdates, players, teams)
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-magenta/20 px-3 py-1 text-sm font-semibold text-magenta-bright">
+          {GAME_BY_ID[gameId].icon} {GAME_BY_ID[gameId].name} · Round {round}
+        </span>
+        <button
+          onClick={endAndReveal}
+          className="rounded-lg bg-magenta px-4 py-2 text-sm font-bold shadow-glow hover:bg-magenta-bright"
+        >
+          ⏹ End &amp; Reveal Scores
+        </button>
+        <button
+          onClick={() => playAgain(sessionId, gameId, round, config)}
+          className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20"
+        >
+          🔁 Play Again
+        </button>
+      </div>
+      <div className="rounded-xl bg-black/20 p-2">
+        <GameComponent
+          sessionId={sessionId}
+          playerId="__host__"
+          round={round}
+          config={config}
+          players={players}
+          isHost
+        />
+      </div>
+    </div>
+  )
+}
+
+function ExternalScores({
+  sessionId,
+  players,
+  teams,
+}: {
+  sessionId: string
+  players: Player[]
+  teams: Team[]
+}) {
+  const [playerId, setPlayerId] = useState('')
+  const [ip, setIp] = useState(0)
+  const [teamId, setTeamId] = useState('')
+  const [gp, setGp] = useState(0)
+
+  function apply() {
+    const player = players.find((p) => p.id === playerId) ?? null
+    const team = teams.find((t) => t.id === teamId) ?? null
+    void applyExternalScore(sessionId, player, ip, team, gp)
+    setIp(0)
+    setGp(0)
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500">
+        Award IP/GP from external games (Kahoot, Imposter, Wavelength…).
+      </p>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="text-sm">
+          <span className="mb-1 block text-slate-400">Player</span>
+          <select
+            value={playerId}
+            onChange={(e) => setPlayerId(e.target.value)}
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 outline-none focus:border-magenta"
+          >
+            <option value="" className="bg-slate-900">
+              — select —
+            </option>
+            {players.map((p) => (
+              <option key={p.id} value={p.id} className="bg-slate-900">
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-slate-400">+ IP</span>
+          <input
+            type="number"
+            value={ip}
+            onChange={(e) => setIp(Number(e.target.value))}
+            className="w-20 rounded-lg border border-white/10 bg-white/5 px-3 py-2 outline-none focus:border-magenta"
+          />
+        </label>
+        <span className="px-2 pb-2 text-slate-600">|</span>
+        <label className="text-sm">
+          <span className="mb-1 block text-slate-400">Team</span>
+          <select
+            value={teamId}
+            onChange={(e) => setTeamId(e.target.value)}
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 outline-none focus:border-magenta"
+          >
+            <option value="" className="bg-slate-900">
+              — select —
+            </option>
+            {teams.map((t) => (
+              <option key={t.id} value={t.id} className="bg-slate-900">
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-slate-400">+ GP</span>
+          <input
+            type="number"
+            value={gp}
+            onChange={(e) => setGp(Number(e.target.value))}
+            className="w-20 rounded-lg border border-white/10 bg-white/5 px-3 py-2 outline-none focus:border-magenta"
+          />
+        </label>
+        <button
+          onClick={apply}
+          className="rounded-lg bg-cyan-accent/90 px-4 py-2 font-semibold text-black transition hover:bg-cyan-accent"
+        >
+          Apply Scores
+        </button>
+      </div>
+    </div>
   )
 }
