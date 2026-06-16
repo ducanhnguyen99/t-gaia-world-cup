@@ -5,9 +5,10 @@ import { db } from '../firebase-config'
 import { useGameState } from '../hooks/useGameState'
 import { useCountdown } from '../hooks/useServerTime'
 import { Timer } from '../components/Timer'
+import { GameIntro } from '../components/GameIntro'
 import { generateMathQuestion } from '../utils/mathQuestions'
 import { playCorrect, playWrong } from '../utils/sounds'
-import type { GameComponentProps } from './types'
+import { INTRO_MS, type GameComponentProps } from './types'
 
 export function MathSpeed({
   sessionId,
@@ -20,9 +21,20 @@ export function MathSpeed({
   const key = `mathSpeed_${round}`
   const game = useGameState(sessionId, key)
   const total = config.timer
-  const deadline = game.startedAt ? game.startedAt + total * 1000 : null
+  // The clock only starts after the intro buffer.
+  const playStart = game.startedAt ? game.startedAt + INTRO_MS : null
+  const deadline = playStart ? playStart + total * 1000 : null
+  const introLeft = useCountdown(playStart)
   const secondsLeft = useCountdown(deadline)
   const finished = deadline != null && secondsLeft <= 0
+
+  if (!game.startedAt) {
+    return <Centered>⚡ Get ready…</Centered>
+  }
+
+  if (introLeft > 0) {
+    return <GameIntro gameId="mathSpeed" secondsLeft={introLeft} />
+  }
 
   if (isHost) {
     return (
@@ -33,10 +45,6 @@ export function MathSpeed({
         players={players}
       />
     )
-  }
-
-  if (!game.startedAt) {
-    return <Centered>⚡ Get ready…</Centered>
   }
 
   return (

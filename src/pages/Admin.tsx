@@ -379,6 +379,26 @@ function GameControl({
     )
   }
 
+  if (status === 'revealing') {
+    return (
+      <div className="rounded-xl border border-magenta/30 bg-magenta/10 p-5 text-center">
+        <div className="text-3xl">🥁</div>
+        <p className="mt-2 font-semibold">
+          The reveal animation is playing on the player screens.
+        </p>
+        <p className="mt-1 text-sm text-slate-400">
+          Scores have been applied. Click below when you're ready to move on.
+        </p>
+        <button
+          onClick={() => setStatus(sessionId, 'between')}
+          className="mt-4 rounded-lg bg-magenta px-5 py-2.5 font-bold text-white shadow-glow hover:bg-magenta-bright"
+        >
+          🏆 Show Leaderboard
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

@@ -3,9 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ref, serverTimestamp, set, update } from 'firebase/database'
 import { db } from '../firebase-config'
 import { useGameState } from '../hooks/useGameState'
-import { useServerTime } from '../hooks/useServerTime'
+import { useCountdown, useServerTime } from '../hooks/useServerTime'
 import { Timer } from '../components/Timer'
+import { GameIntro } from '../components/GameIntro'
 import { playCorrect, playRoundStart, playWrong } from '../utils/sounds'
+import { INTRO_MS } from './types'
 import type { GameId, Player } from '../types'
 
 type AnswerConfig<T> =
@@ -30,6 +32,7 @@ interface RoundData {
   index: number
   phase: 'play' | 'reveal'
   deadline: number
+  startsAt?: number
 }
 
 interface Props<T> {
@@ -55,6 +58,10 @@ export function RoundGame<T>({
   const game = useGameState(sessionId, key)
   const serverNow = useServerTime()
   const rd = game.roundData as unknown as RoundData | undefined
+  // Intro countdown only applies to the very first round.
+  const introLeft = useCountdown(
+    rd?.index === 0 ? (rd?.startsAt ?? null) : null,
+  )
 
   // ----- Host: initialise the round order once -----
   const initRef = useRef(false)
@@ -67,6 +74,7 @@ export function RoundGame<T>({
     initRef.current = true
     const n = Math.min(numRounds, cfg.items.length)
     const order = [...cfg.items.keys()].sort(() => Math.random() - 0.5).slice(0, n)
+    const startsAt = serverNow() + INTRO_MS
     void update(ref(db, `sessions/${sessionId}/games/${key}`), {
       status: 'active',
       startedAt: serverTimestamp(),
@@ -74,7 +82,8 @@ export function RoundGame<T>({
         order,
         index: 0,
         phase: 'play',
-        deadline: serverNow() + cfg.perRoundSeconds * 1000,
+        startsAt,
+        deadline: startsAt + cfg.perRoundSeconds * 1000,
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -132,6 +141,10 @@ export function RoundGame<T>({
         <p className="mt-2 text-sm text-slate-400">Waiting for the reveal…</p>
       </div>
     )
+  }
+
+  if (rd.index === 0 && introLeft > 0) {
+    return <GameIntro gameId={cfg.gameId} secondsLeft={introLeft} />
   }
 
   const item = cfg.items[rd.order[rd.index]]

@@ -12,6 +12,9 @@ export interface GameComponentProps {
   players?: Player[]
 }
 
+// Buffer before a game's first round, for instructions + a 3-2-1 countdown.
+export const INTRO_MS = 5000
+
 // Per-sub-round points for first-correct-submit games.
 export const SUBMIT_POINTS = [10, 7, 5] // 4th+ => 3
 export function pointsForPosition(position: number): number {

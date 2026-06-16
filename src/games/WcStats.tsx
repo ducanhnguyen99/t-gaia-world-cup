@@ -3,11 +3,12 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ref, serverTimestamp, set, update } from 'firebase/database'
 import { db } from '../firebase-config'
 import { useGameState } from '../hooks/useGameState'
-import { useServerTime } from '../hooks/useServerTime'
+import { useCountdown, useServerTime } from '../hooks/useServerTime'
 import { Timer } from '../components/Timer'
+import { GameIntro } from '../components/GameIntro'
 import { playCorrect, playRoundStart } from '../utils/sounds'
 import questionsData from '../data/wc-stats-questions.json'
-import type { GameComponentProps } from './types'
+import { INTRO_MS, type GameComponentProps } from './types'
 
 interface StatQuestion {
   question: string
@@ -20,6 +21,7 @@ interface RoundData {
   index: number
   phase: 'play' | 'reveal'
   deadline: number
+  startsAt?: number
 }
 
 const QUESTIONS = questionsData as StatQuestion[]
@@ -37,6 +39,9 @@ export function WcStats({
   const game = useGameState(sessionId, key)
   const serverNow = useServerTime()
   const rd = game.roundData as unknown as RoundData | undefined
+  const introLeft = useCountdown(
+    rd?.index === 0 ? (rd?.startsAt ?? null) : null,
+  )
 
   // Host: init order once.
   const initRef = useRef(false)
@@ -49,6 +54,7 @@ export function WcStats({
     initRef.current = true
     const n = Math.min(config.rounds, QUESTIONS.length)
     const order = [...QUESTIONS.keys()].sort(() => Math.random() - 0.5).slice(0, n)
+    const startsAt = serverNow() + INTRO_MS
     void update(ref(db, `sessions/${sessionId}/games/${key}`), {
       status: 'active',
       startedAt: serverTimestamp(),
@@ -56,7 +62,8 @@ export function WcStats({
         order,
         index: 0,
         phase: 'play',
-        deadline: serverNow() + PER_ROUND * 1000,
+        startsAt,
+        deadline: startsAt + PER_ROUND * 1000,
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,6 +115,10 @@ export function WcStats({
         <p className="mt-2 text-sm text-slate-400">Waiting for the reveal…</p>
       </Card>
     )
+  }
+
+  if (rd.index === 0 && introLeft > 0) {
+    return <GameIntro gameId="wcStats" secondsLeft={introLeft} />
   }
 
   const q = QUESTIONS[rd.order[rd.index]]

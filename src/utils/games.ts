@@ -5,6 +5,7 @@ export interface GameMeta {
   name: string
   icon: string
   blurb: string
+  howTo: string
 }
 
 export const GAMES: GameMeta[] = [
@@ -13,30 +14,35 @@ export const GAMES: GameMeta[] = [
     name: 'Math Speed',
     icon: '⚡',
     blurb: 'Solve as many chained sums as you can in 60s',
+    howTo: 'Solve as many as you can before the timer runs out. Type the answer and press Enter — a new one appears instantly. × before + and −. Wrong answers just skip, no penalty.',
   },
   {
     id: 'scrambledWords',
     name: 'Scrambled Words',
     icon: '🔤',
     blurb: 'Unscramble the word — fastest correct wins',
+    howTo: 'Everyone sees the same scrambled word. Type the unscrambled word and submit. The faster you are correct, the more points. One word per round.',
   },
   {
     id: 'emojiRiddles',
     name: 'Emoji Riddles',
     icon: '🧩',
     blurb: 'Decode the emojis — first correct answer wins',
+    howTo: 'Work out the word or phrase the emojis represent and type it. Several spellings are accepted. Faster correct answers score more.',
   },
   {
     id: 'wcStats',
     name: 'WC Stats Guessing',
     icon: '📊',
     blurb: 'Guess the number — closest gets the most points',
+    howTo: 'A number question appears. Type your best estimate. The closest guesses score the most — no need to be exact!',
   },
   {
     id: 'languageGuessing',
     name: 'Language Guessing',
     icon: '🌍',
     blurb: 'Which language is it? First correct wins',
+    howTo: 'A phrase appears in a language. Tap which language it is from the four options. First correct wins — but a wrong tap locks you out for that round, so be sure!',
   },
 ]
 

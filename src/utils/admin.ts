@@ -75,6 +75,7 @@ export async function removePlayer(sessionId: string, playerId: string) {
 /** Emergency: clear all played games and return to lobby (keeps players/teams). */
 export async function resetGames(sessionId: string) {
   await set(ref(db, `sessions/${sessionId}/games`), null)
+  await set(ref(db, `sessions/${sessionId}/lastReveal`), null)
   await update(ref(db, `sessions/${sessionId}`), {
     status: 'lobby' as SessionStatus,
     currentGame: null,
@@ -143,9 +144,9 @@ export async function applyScoresAndReveal(
     if (gained) updates[`teams/${t.id}/gp`] = t.gp + gained
   }
 
-  // Only include players who actually took part (have a raw score).
+  // Include the whole roster so the reveal is never empty — players with no
+  // correct answers simply show 0 pts / +0 IP.
   const entries: RevealEntry[] = players
-    .filter((p) => p.id in raw)
     .map((p) => {
       const team = p.team ? teamById[p.team] : undefined
       return {
