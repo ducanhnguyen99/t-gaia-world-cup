@@ -1,0 +1,99 @@
+@import 'tailwindcss';
+
+/* ===== T-Gaia World Cup 2026 theme =====
+   Telekom Magenta primary, dark techy background, cyan/teal accents. */
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Brand palette */
+  --color-magenta: #e20074;
+  --color-magenta-bright: #ff2a9d;
+  --color-magenta-deep: #a8005a;
+
+  --color-cyan-accent: #22d3ee;
+  --color-teal-accent: #2dd4bf;
+
+  /* Team colors (auto-assigned from this palette) */
+  --color-team-magenta: #e20074;
+  --color-team-cyan: #22d3ee;
+  --color-team-lime: #a3e635;
+  --color-team-orange: #fb923c;
+  --color-team-purple: #c084fc;
+  --color-team-yellow: #facc15;
+
+  /* Brand glow shadow */
+  --shadow-glow: 0 0 15px rgba(226, 0, 116, 0.3);
+  --shadow-glow-lg: 0 0 40px rgba(226, 0, 116, 0.45);
+  --shadow-glow-cyan: 0 0 20px rgba(34, 211, 238, 0.35);
+
+  /* Animated gradient background keyframes */
+  --animate-gradient: gradient-shift 18s ease infinite;
+  --animate-float: float 6s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: #f1f5f9;
+  background: #020617; /* slate-950 base; gradient layer added by .app-bg */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animated dark gradient backdrop (slate-950 -> indigo-950 -> purple-950) */
+.app-bg {
+  background:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(226, 0, 116, 0.12),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 80% 70%,
+      rgba(34, 211, 238, 0.1),
+      transparent 45%
+    ),
+    linear-gradient(135deg, #020617, #1e1b4b, #2e1065, #020617);
+  background-size: 100% 100%, 100% 100%, 400% 400%, 100% 100%;
+  animation: var(--animate-gradient);
+}
+
+/* Glassmorphism panel utility */
+@utility glass {
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+}

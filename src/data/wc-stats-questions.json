@@ -1,0 +1,20 @@
+[
+  { "question": "How many total goals were scored in the 2022 World Cup?", "answer": 172, "unit": "goals" },
+  { "question": "How many red cards were shown in the 2022 World Cup?", "answer": 4, "unit": "cards" },
+  { "question": "What was the average age of players at the 2022 World Cup?", "answer": 27, "unit": "years" },
+  { "question": "How many countries have ever won a FIFA World Cup?", "answer": 8, "unit": "countries" },
+  { "question": "How many matches were played in the 2022 World Cup?", "answer": 64, "unit": "matches" },
+  { "question": "What is the record attendance at a World Cup final (1950, Brazil)?", "answer": 173850, "unit": "people" },
+  { "question": "How many own goals were scored in the 2022 World Cup?", "answer": 1, "unit": "goals" },
+  { "question": "How many penalty shootouts took place in the 2022 World Cup?", "answer": 4, "unit": "shootouts" },
+  { "question": "How many goals did the top scorer at WC 2022 (Mbappe) score?", "answer": 8, "unit": "goals" },
+  { "question": "How many World Cups has Germany won?", "answer": 4, "unit": "titles" },
+  { "question": "What year was the first FIFA World Cup held?", "answer": 1930, "unit": "year" },
+  { "question": "How many teams participate in the 2026 World Cup?", "answer": 48, "unit": "teams" },
+  { "question": "How many venues host the 2026 World Cup?", "answer": 16, "unit": "stadiums" },
+  { "question": "How many parameters does GPT-3 have (in billions)?", "answer": 175, "unit": "billion" },
+  { "question": "How many programming languages are tracked on GitHub?", "answer": 500, "unit": "languages" },
+  { "question": "How many Deutsche Telekom employees worldwide (in thousands)?", "answer": 200, "unit": "thousand" },
+  { "question": "How many World Cup goals has Miroslav Klose scored (all-time record)?", "answer": 16, "unit": "goals" },
+  { "question": "How many minutes of added time were played in WC 2022 group stage total (estimated)?", "answer": 300, "unit": "minutes" }
+]
