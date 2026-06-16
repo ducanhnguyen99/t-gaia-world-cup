@@ -1,5 +1,6 @@
 import { RoundGame, type RoundGameConfig } from './RoundGame'
 import type { GameComponentProps } from './types'
+import { seededShuffle } from '../utils/scramble'
 import langData from '../data/language-guessing.json'
 
 interface LangItem {
@@ -18,7 +19,9 @@ const cfg: RoundGameConfig<LangItem> = {
   correctText: (item) => item.answer,
   answer: {
     type: 'choice',
-    options: (item) => item.options,
+    // Shuffle so the correct answer isn't always option[0] (top-left), but keep
+    // it deterministic per phrase so every player sees the same layout.
+    options: (item) => seededShuffle(item.options, item.phrase),
     isCorrect: (item, opt) => opt === item.answer,
   },
 }

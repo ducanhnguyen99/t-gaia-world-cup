@@ -20,6 +20,21 @@ function hash(str: string): number {
 }
 
 /**
+ * Deterministically shuffle an array, seeded by a string. Same array + seed →
+ * same order for every client (so e.g. multiple-choice options aren't always
+ * in the same position, but everyone sees an identical layout).
+ */
+export function seededShuffle<T>(arr: T[], seed: string): T[] {
+  const rng = mulberry32(hash(seed))
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+/**
  * Deterministically scramble a word's letters (seeded by the word), guaranteeing
  * the result differs from the original. Same input → same output for everyone.
  */
