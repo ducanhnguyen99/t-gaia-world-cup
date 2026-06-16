@@ -10,6 +10,7 @@ import type {
   GameConfig,
   GameId,
   LastReveal,
+  PlanStep,
   Player,
   RevealEntry,
   RevealTeamEntry,
@@ -190,6 +191,62 @@ export async function applyExternalScore(
   if (team && gpDelta) updates[`teams/${team.id}/gp`] = team.gp + gpDelta
   if (Object.keys(updates).length)
     await update(ref(db, `sessions/${sessionId}`), updates)
+}
+
+// ---------- Game plan / agenda ----------
+
+function teaserFor(step: PlanStep | undefined): GameId | null {
+  return step?.kind === 'internal' ? (step.gameId ?? null) : null
+}
+
+/** Persist the ordered agenda of steps. */
+export async function savePlan(sessionId: string, steps: PlanStep[]) {
+  await update(ref(db, `sessions/${sessionId}/plan`), { steps })
+}
+
+/** Run plan step `index`: start the internal game, or show the external screen. */
+export async function startPlanStep(
+  sessionId: string,
+  steps: PlanStep[],
+  index: number,
+  currentRound: number,
+) {
+  const step = steps[index]
+  if (!step) return
+  const nextGame = teaserFor(steps[index + 1])
+
+  if (step.kind === 'internal' && step.gameId) {
+    await startGame(sessionId, step.gameId, currentRound + 1, {
+      timer: step.timer ?? 60,
+      rounds: step.rounds ?? 10,
+    })
+    await update(ref(db, `sessions/${sessionId}`), {
+      nextGame,
+      'plan/index': index,
+    })
+  } else {
+    await update(ref(db, `sessions/${sessionId}`), {
+      status: 'external' as SessionStatus,
+      currentGame: null,
+      externalName: step.name ?? 'External game',
+      nextGame,
+      'plan/index': index,
+    })
+  }
+}
+
+/** Advance the agenda pointer and show the leaderboard between steps. */
+export async function advancePlan(
+  sessionId: string,
+  currentIndex: number,
+  steps: PlanStep[],
+) {
+  const next = Math.min(currentIndex + 1, steps.length)
+  await update(ref(db, `sessions/${sessionId}`), {
+    'plan/index': next,
+    status: 'between' as SessionStatus,
+    nextGame: teaserFor(steps[next]),
+  })
 }
 
 /** Wipe everything (players, teams, games) and start a clean lobby. */

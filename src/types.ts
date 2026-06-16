@@ -6,6 +6,7 @@ export type SessionStatus =
   | 'between'
   | 'revealing'
   | 'ended'
+  | 'external'
 
 export type GameId =
   | 'mathSpeed'
@@ -35,6 +36,15 @@ export interface Team {
 export interface GameConfig {
   timer: number
   rounds: number
+}
+
+export interface PlanStep {
+  id: string
+  kind: 'internal' | 'external'
+  gameId?: GameId // for internal
+  name?: string // label (external name, or shown for internal)
+  timer?: number // internal: Math Speed timer
+  rounds?: number // internal: round games
 }
 
 export interface RevealEntry {

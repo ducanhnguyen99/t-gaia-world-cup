@@ -105,6 +105,15 @@ export function Game() {
         )
       }
 
+      case 'external':
+        return (
+          <CenterCard
+            icon="🎮"
+            title={session.externalName ?? 'External game'}
+            subtitle="Follow your host — play this one in the other app/screen. Scores will appear on the leaderboard."
+          />
+        )
+
       case 'revealing':
         return session.lastReveal ? (
           <RevealAnimation reveal={session.lastReveal} />

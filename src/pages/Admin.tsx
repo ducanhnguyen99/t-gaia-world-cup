@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Layout } from '../components/Layout'
 import { Leaderboard } from '../components/Leaderboard'
+import { PlaylistBuilder } from '../components/PlaylistBuilder'
 import { useSession } from '../hooks/useSession'
 import { useGameState } from '../hooks/useGameState'
 import { GAMES, GAME_BY_ID } from '../utils/games'
@@ -208,14 +209,26 @@ function AdminDashboard() {
           )}
         </Section>
 
-        {/* Game control */}
-        <Section title="Game Control">
+        {/* Game plan / agenda */}
+        <Section title="Game Plan (Agenda)">
+          <PlaylistBuilder
+            sessionId={sessionId}
+            steps={session.planSteps}
+            planIndex={session.planIndex}
+            status={session.status}
+            currentRound={session.currentRound}
+          />
+        </Section>
+
+        {/* Game control (ad-hoc / live) */}
+        <Section title="Game Control (ad-hoc)">
           <GameControl
             sessionId={sessionId}
             status={session.status}
             currentGame={session.currentGame}
             currentRound={session.currentRound}
             gameConfig={session.gameConfig}
+            externalName={session.externalName}
             players={session.players}
             teams={session.teams}
           />
@@ -351,6 +364,7 @@ function GameControl({
   currentGame,
   currentRound,
   gameConfig,
+  externalName,
   players,
   teams,
 }: {
@@ -359,6 +373,7 @@ function GameControl({
   currentGame: GameId | null
   currentRound: number
   gameConfig: GameConfig
+  externalName: string | null
   players: Player[]
   teams: Team[]
 }) {
@@ -376,6 +391,27 @@ function GameControl({
         players={players}
         teams={teams}
       />
+    )
+  }
+
+  if (status === 'external') {
+    return (
+      <div className="rounded-xl border border-cyan-accent/30 bg-cyan-accent/10 p-5 text-center">
+        <div className="text-3xl">🎮</div>
+        <p className="mt-2 font-semibold">
+          External game in progress: {externalName ?? 'External game'}
+        </p>
+        <p className="mt-1 text-sm text-slate-400">
+          Run it in the other app, then enter results in “External Game Scores”
+          below and advance with “Next step”.
+        </p>
+        <button
+          onClick={() => setStatus(sessionId, 'between')}
+          className="mt-4 rounded-lg bg-magenta px-5 py-2.5 font-bold text-white shadow-glow hover:bg-magenta-bright"
+        >
+          🏆 Show Leaderboard
+        </button>
+      </div>
     )
   }
 

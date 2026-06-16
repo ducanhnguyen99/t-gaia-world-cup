@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { onValue, ref } from 'firebase/database'
 import { db } from '../firebase-config'
-import type { GameId, LastReveal, Player, SessionStatus, Team } from '../types'
+import type {
+  GameId,
+  LastReveal,
+  PlanStep,
+  Player,
+  SessionStatus,
+  Team,
+} from '../types'
 
 export interface SessionState {
   status: SessionStatus
@@ -12,6 +19,9 @@ export interface SessionState {
   players: Player[]
   teams: Team[]
   lastReveal: LastReveal | null
+  planSteps: PlanStep[]
+  planIndex: number
+  externalName: string | null
   exists: boolean
   loading: boolean
 }
@@ -25,6 +35,9 @@ const EMPTY: SessionState = {
   players: [],
   teams: [],
   lastReveal: null,
+  planSteps: [],
+  planIndex: 0,
+  externalName: null,
   exists: false,
   loading: true,
 }
@@ -73,6 +86,9 @@ export function useSession(sessionId: string): SessionState {
         players,
         teams,
         lastReveal: (val.lastReveal ?? null) as LastReveal | null,
+        planSteps: (val.plan?.steps ?? []) as PlanStep[],
+        planIndex: val.plan?.index ?? 0,
+        externalName: (val.externalName ?? null) as string | null,
         exists: true,
         loading: false,
       })
