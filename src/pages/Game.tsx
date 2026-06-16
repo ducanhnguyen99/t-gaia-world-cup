@@ -1,15 +1,48 @@
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ref, update } from 'firebase/database'
+import { db } from '../firebase-config'
 import { Layout } from '../components/Layout'
+import { WaitingScreen } from '../components/WaitingScreen'
+import { Leaderboard } from '../components/Leaderboard'
 import { usePlayer } from '../hooks/usePlayer'
 import { useSession } from '../hooks/useSession'
+import { usePresence } from '../hooks/usePresence'
+import { GAME_BY_ID } from '../utils/games'
 
 export function Game() {
   const navigate = useNavigate()
   const { identity } = usePlayer()
   const sessionId = identity.sessionId ?? 'WC2026'
+  const playerId = identity.playerId
   const session = useSession(sessionId)
 
-  if (!identity.playerId) {
+  usePresence(sessionId, playerId)
+
+  // Late-joiner: if teams exist but I'm unassigned, join the smallest team.
+  const assignedRef = useRef(false)
+  useEffect(() => {
+    if (assignedRef.current || !playerId) return
+    if (session.teams.length === 0) return
+    const me = session.players.find((p) => p.id === playerId)
+    if (!me || me.team) return
+
+    const counts = session.teams.map((t) => ({
+      id: t.id,
+      n: session.players.filter((p) => p.team === t.id).length,
+    }))
+    counts.sort((a, b) => a.n - b.n)
+    const smallest = counts[0]
+    if (smallest) {
+      assignedRef.current = true
+      void update(ref(db, `sessions/${sessionId}/players/${playerId}`), {
+        team: smallest.id,
+      })
+    }
+  }, [session.teams, session.players, playerId, sessionId])
+
+  if (!playerId) {
     navigate('/')
     return null
   }
@@ -22,19 +55,101 @@ export function Game() {
         </span>
       }
     >
-      <div className="glass mx-auto mt-8 max-w-2xl p-10 text-center">
-        <div className="mb-4 text-5xl">🎮</div>
-        <h2 className="text-2xl font-bold">
-          {session.loading ? 'Connecting…' : `Status: ${session.status}`}
-        </h2>
-        <p className="mt-3 text-slate-300">
-          {session.players.length} player
-          {session.players.length === 1 ? '' : 's'} connected
-        </p>
-        <p className="mt-6 text-sm text-slate-400">
-          Game views render here based on session state (Phase 2+).
-        </p>
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={session.status}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.3 }}
+        >
+          {renderState()}
+        </motion.div>
+      </AnimatePresence>
     </Layout>
+  )
+
+  function renderState() {
+    if (session.loading) {
+      return <CenterCard icon="📡" title="Connecting…" />
+    }
+
+    switch (session.status) {
+      case 'lobby':
+        return (
+          <WaitingScreen
+            sessionId={sessionId}
+            playerId={playerId!}
+            players={session.players}
+            teams={session.teams}
+            nextGame={session.nextGame}
+          />
+        )
+
+      case 'playing':
+        return (
+          <CenterCard
+            icon={session.currentGame ? GAME_BY_ID[session.currentGame].icon : '🎮'}
+            title={
+              session.currentGame
+                ? GAME_BY_ID[session.currentGame].name
+                : 'Game starting…'
+            }
+            subtitle={`Round ${session.currentRound} — game UI arrives in Phase 4`}
+          />
+        )
+
+      case 'revealing':
+        return <CenterCard icon="🥁" title="Revealing results…" subtitle="Phase 5" />
+
+      case 'between':
+        return (
+          <div className="mx-auto max-w-2xl">
+            <div className="glass mb-6 p-6 text-center">
+              <div className="text-4xl">🏆</div>
+              <h2 className="mt-2 text-xl font-bold">Current Standings</h2>
+              {session.nextGame && (
+                <p className="mt-1 text-sm text-slate-400">
+                  Next up: {GAME_BY_ID[session.nextGame].icon}{' '}
+                  {GAME_BY_ID[session.nextGame].name}
+                </p>
+              )}
+            </div>
+            <Leaderboard players={session.players} teams={session.teams} />
+          </div>
+        )
+
+      case 'ended':
+        return (
+          <div className="mx-auto max-w-2xl">
+            <div className="glass mb-6 p-8 text-center">
+              <div className="text-5xl">🎉</div>
+              <h2 className="mt-2 text-2xl font-black">Final Results</h2>
+            </div>
+            <Leaderboard players={session.players} teams={session.teams} />
+          </div>
+        )
+
+      default:
+        return <CenterCard icon="⚽" title="Standing by…" />
+    }
+  }
+}
+
+function CenterCard({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: string
+  title: string
+  subtitle?: string
+}) {
+  return (
+    <div className="glass mx-auto mt-8 max-w-2xl p-10 text-center">
+      <div className="mb-4 text-5xl">{icon}</div>
+      <h2 className="text-2xl font-bold">{title}</h2>
+      {subtitle && <p className="mt-3 text-sm text-slate-400">{subtitle}</p>}
+    </div>
   )
 }
