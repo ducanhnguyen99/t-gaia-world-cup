@@ -6,6 +6,8 @@ import { db } from '../firebase-config'
 import { Layout } from '../components/Layout'
 import { WaitingScreen } from '../components/WaitingScreen'
 import { Leaderboard } from '../components/Leaderboard'
+import { RevealAnimation } from '../components/RevealAnimation'
+import { Confetti } from '../components/Confetti'
 import { usePlayer } from '../hooks/usePlayer'
 import { useSession } from '../hooks/useSession'
 import { usePresence } from '../hooks/usePresence'
@@ -104,7 +106,11 @@ export function Game() {
       }
 
       case 'revealing':
-        return <CenterCard icon="🥁" title="Revealing results…" subtitle="Phase 5" />
+        return session.lastReveal ? (
+          <RevealAnimation reveal={session.lastReveal} />
+        ) : (
+          <CenterCard icon="🥁" title="Revealing results…" />
+        )
 
       case 'between':
         return (
@@ -123,16 +129,50 @@ export function Game() {
           </div>
         )
 
-      case 'ended':
+      case 'ended': {
+        const champion = [...session.players].sort((a, b) => b.ip - a.ip)[0]
+        const topTeam = [...session.teams].sort((a, b) => b.gp - a.gp)[0]
         return (
           <div className="mx-auto max-w-2xl">
-            <div className="glass mb-6 p-8 text-center">
-              <div className="text-5xl">🎉</div>
-              <h2 className="mt-2 text-2xl font-black">Final Results</h2>
-            </div>
+            <Confetti fireKey="ended" duration={5000} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass mb-6 p-8 text-center"
+            >
+              <div className="text-6xl">🏆</div>
+              <h2 className="mt-2 text-3xl font-black">Final Results</h2>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {champion && (
+                  <div className="rounded-xl bg-gradient-to-br from-yellow-400/20 to-amber-500/5 p-4">
+                    <div className="text-xs tracking-wide text-slate-400 uppercase">
+                      Individual Champion
+                    </div>
+                    <div className="mt-1 text-xl font-bold">🥇 {champion.name}</div>
+                    <div className="text-sm text-cyan-accent">{champion.ip} IP</div>
+                  </div>
+                )}
+                {topTeam && (
+                  <div className="rounded-xl bg-gradient-to-br from-magenta/20 to-magenta-deep/5 p-4">
+                    <div className="text-xs tracking-wide text-slate-400 uppercase">
+                      Team Champion
+                    </div>
+                    <div className="mt-1 text-xl font-bold">
+                      <span
+                        className="mr-1 inline-block h-3 w-3 rounded-full align-middle"
+                        style={{ backgroundColor: topTeam.color ?? '#888' }}
+                      />
+                      {topTeam.name}
+                    </div>
+                    <div className="text-sm text-magenta-bright">{topTeam.gp} GP</div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
             <Leaderboard players={session.players} teams={session.teams} />
           </div>
         )
+      }
 
       default:
         return <CenterCard icon="⚽" title="Standing by…" />

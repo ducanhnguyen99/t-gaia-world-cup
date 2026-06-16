@@ -468,7 +468,16 @@ function HostActiveGame({
   function endAndReveal() {
     const raw = computeRawScores(gameId, game)
     const { ipUpdates, gpUpdates } = calculateGameScores(raw, players, teams, true)
-    void applyScoresAndReveal(sessionId, ipUpdates, gpUpdates, players, teams)
+    void applyScoresAndReveal(
+      sessionId,
+      gameId,
+      round,
+      raw,
+      ipUpdates,
+      gpUpdates,
+      players,
+      teams,
+    )
   }
 
   return (

@@ -37,6 +37,29 @@ export interface GameConfig {
   rounds: number
 }
 
+export interface RevealEntry {
+  playerId: string
+  name: string
+  teamName?: string
+  teamColor?: string
+  raw: number
+  ipGained: number
+}
+
+export interface RevealTeamEntry {
+  teamId: string
+  name: string
+  color?: string
+  gpGained: number
+}
+
+export interface LastReveal {
+  gameId: GameId
+  round: number
+  entries: RevealEntry[] // sorted best → worst
+  teams: RevealTeamEntry[] // sorted best → worst
+}
+
 export interface Session {
   status: SessionStatus
   currentGame: GameId | null

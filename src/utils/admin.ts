@@ -6,7 +6,16 @@ import {
   update,
 } from 'firebase/database'
 import { db } from '../firebase-config'
-import type { GameConfig, GameId, Player, SessionStatus, Team } from '../types'
+import type {
+  GameConfig,
+  GameId,
+  LastReveal,
+  Player,
+  RevealEntry,
+  RevealTeamEntry,
+  SessionStatus,
+  Team,
+} from '../types'
 import { generateTeamNames, teamColor } from './teamNames'
 
 /** Create (or reset) a session in lobby state, preserving any existing players. */
@@ -107,15 +116,24 @@ export async function playAgain(
   return next
 }
 
-/** End the active game: apply IP/GP deltas to totals, then go to reveal. */
+/**
+ * End the active game: apply IP/GP deltas to totals, persist a per-game reveal
+ * payload (so the reveal animation can show this game's ranking), then go to
+ * the "revealing" state.
+ */
 export async function applyScoresAndReveal(
   sessionId: string,
+  gameId: GameId,
+  round: number,
+  raw: Record<string, number>,
   ipUpdates: Record<string, number>,
   gpUpdates: Record<string, number>,
   players: Player[],
   teams: Team[],
 ) {
+  const teamById = Object.fromEntries(teams.map((t) => [t.id, t]))
   const updates: Record<string, unknown> = {}
+
   for (const p of players) {
     const gained = ipUpdates[p.id] ?? 0
     if (gained) updates[`players/${p.id}/ip`] = p.ip + gained
@@ -124,7 +142,37 @@ export async function applyScoresAndReveal(
     const gained = gpUpdates[t.id] ?? 0
     if (gained) updates[`teams/${t.id}/gp`] = t.gp + gained
   }
+
+  // Only include players who actually took part (have a raw score).
+  const entries: RevealEntry[] = players
+    .filter((p) => p.id in raw)
+    .map((p) => {
+      const team = p.team ? teamById[p.team] : undefined
+      return {
+        playerId: p.id,
+        name: p.name,
+        teamName: team?.name,
+        teamColor: team?.color,
+        raw: raw[p.id] ?? 0,
+        ipGained: ipUpdates[p.id] ?? 0,
+      }
+    })
+    .sort((a, b) => b.raw - a.raw)
+
+  const teamEntries: RevealTeamEntry[] = teams
+    .filter((t) => (gpUpdates[t.id] ?? 0) > 0)
+    .map((t) => ({
+      teamId: t.id,
+      name: t.name,
+      color: t.color,
+      gpGained: gpUpdates[t.id] ?? 0,
+    }))
+    .sort((a, b) => b.gpGained - a.gpGained)
+
+  const reveal: LastReveal = { gameId, round, entries, teams: teamEntries }
+  updates['lastReveal'] = reveal
   updates['status'] = 'revealing'
+
   await update(ref(db, `sessions/${sessionId}`), updates)
 }
 
