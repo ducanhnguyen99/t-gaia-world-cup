@@ -213,13 +213,18 @@ function SubRound<T>({
     correct ? playCorrect() : playWrong()
   }
 
-  const winnerId = useMemo(() => {
+  // Correct answers ranked by submission time, with the gap behind the fastest.
+  const fastest = useMemo(() => {
     const correct = Object.entries(answers)
       .filter(([, a]) => a.correct)
       .sort((a, b) => (a[1].ts ?? 0) - (b[1].ts ?? 0))
-    return correct[0]?.[0]
-  }, [answers])
-  const winnerName = players.find((p) => p.id === winnerId)?.name
+    const firstTs = correct[0]?.[1]?.ts ?? 0
+    return correct.map(([id, a]) => ({
+      id,
+      name: players.find((p) => p.id === id)?.name ?? '—',
+      delta: ((a.ts ?? 0) - firstTs) / 1000,
+    }))
+  }, [answers, players])
 
   return (
     <div className="mx-auto mt-6 max-w-xl">
@@ -249,15 +254,26 @@ function SubRound<T>({
               <div className="text-2xl font-black text-cyan-accent">
                 {cfg.correctText(item)}
               </div>
-              <div className="text-sm text-slate-300">
-                {winnerName ? (
-                  <>
-                    🥇 First: <span className="font-semibold">{winnerName}</span>
-                  </>
-                ) : (
-                  'No one got it'
-                )}
-              </div>
+              {fastest.length > 0 ? (
+                <ul className="mx-auto mt-2 max-w-xs space-y-1 text-left text-sm">
+                  {fastest.slice(0, 5).map((f, i) => (
+                    <li
+                      key={f.id}
+                      className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-1.5"
+                    >
+                      <span>
+                        {['🥇', '🥈', '🥉'][i] ?? `${i + 1}.`}{' '}
+                        <span className="font-semibold">{f.name}</span>
+                      </span>
+                      <span className="font-mono text-cyan-accent">
+                        {i === 0 ? 'fastest ⚡' : `+${f.delta.toFixed(1)}s`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-slate-300">No one got it</div>
+              )}
             </motion.div>
           ) : isHost ? (
             <motion.div key="host" className="text-sm text-slate-400">
