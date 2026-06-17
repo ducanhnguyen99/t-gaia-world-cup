@@ -16,12 +16,28 @@ import { GAME_COMPONENTS } from '../games/registry'
 
 export function Game() {
   const navigate = useNavigate()
-  const { identity } = usePlayer()
+  const { identity, clear } = usePlayer()
   const sessionId = identity.sessionId ?? 'WC2026'
   const playerId = identity.playerId
   const session = useSession(sessionId)
 
-  usePresence(sessionId, playerId)
+  // If the session was wiped/reset, our stored player no longer exists in the
+  // backend. Clear the stale local identity and go re-join (instead of writing
+  // a nameless ghost via presence).
+  const meExists =
+    !session.loading &&
+    !!playerId &&
+    session.players.some((p) => p.id === playerId)
+  useEffect(() => {
+    if (!playerId || session.loading) return
+    if (session.exists && !session.players.some((p) => p.id === playerId)) {
+      clear()
+      navigate('/')
+    }
+  }, [session.loading, session.exists, session.players, playerId, clear, navigate])
+
+  // Only maintain presence once we've confirmed we're a real session member.
+  usePresence(sessionId, meExists ? playerId : null)
 
   // Late-joiner: if teams exist but I'm unassigned, join the smallest team.
   const assignedRef = useRef(false)

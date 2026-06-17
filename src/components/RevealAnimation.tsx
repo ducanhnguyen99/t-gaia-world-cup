@@ -21,11 +21,17 @@ function rankStyle(rank: number): string {
 }
 
 export function RevealAnimation({ reveal }: { reveal: LastReveal }) {
-  const meta = GAME_BY_ID[reveal.gameId]
+  const meta = GAME_BY_ID[reveal.gameId] ?? {
+    name: 'Results',
+    icon: '🏆',
+  }
+  // Firebase stores empty arrays as null, so these can come back undefined.
+  const entries = reveal.entries ?? []
+  const teams = reveal.teams ?? []
 
   // Compute per-row reveal delays from worst → best (dramatic pause near the top).
   const { delays, winnerDelay } = useMemo(() => {
-    const n = reveal.entries.length
+    const n = entries.length
     const d = new Array(n).fill(0)
     let t = 0.6
     for (let i = n - 1; i >= 0; i--) {
@@ -33,7 +39,7 @@ export function RevealAnimation({ reveal }: { reveal: LastReveal }) {
       t += i < 3 ? 1.3 : 0.4
     }
     return { delays: d, winnerDelay: d[0] ?? 0.6 }
-  }, [reveal])
+  }, [entries])
 
   const [showWinnerFx, setShowWinnerFx] = useState(false)
   const [showTeams, setShowTeams] = useState(false)
@@ -65,12 +71,12 @@ export function RevealAnimation({ reveal }: { reveal: LastReveal }) {
       </div>
 
       <ul className="space-y-2">
-        {reveal.entries.length === 0 && (
+        {entries.length === 0 && (
           <li className="glass p-6 text-center text-slate-400">
             No scores recorded this game.
           </li>
         )}
-        {reveal.entries.map((e, rank) => (
+        {entries.map((e, rank) => (
           <motion.li
             key={e.playerId}
             initial={{ opacity: 0, x: -60, scale: 0.95 }}
@@ -102,7 +108,7 @@ export function RevealAnimation({ reveal }: { reveal: LastReveal }) {
         ))}
       </ul>
 
-      {showTeams && reveal.teams.length > 0 && (
+      {showTeams && teams.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -112,7 +118,7 @@ export function RevealAnimation({ reveal }: { reveal: LastReveal }) {
             Team Points (GP) this game
           </div>
           <div className="flex flex-wrap justify-center gap-2">
-            {reveal.teams.map((t) => (
+            {teams.map((t) => (
               <span
                 key={t.teamId}
                 className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 text-sm font-semibold"

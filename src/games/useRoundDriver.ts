@@ -66,7 +66,9 @@ export function useRoundDriver(opts: {
       const cur = rdRef.current
 
       // Initialise the round order once (whoever wins the transaction).
-      if (!cur) {
+      // Note: useGameState yields `{}` (not undefined) when roundData is absent,
+      // so we must check for the `order` field, not just truthiness.
+      if (!cur?.order) {
         const n = Math.min(numRounds, itemCount)
         const order = shuffledRange(itemCount).slice(0, n)
         const startsAt = now + INTRO_MS
