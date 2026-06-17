@@ -15,6 +15,24 @@ function audio(): AudioContext {
   return ctx
 }
 
+// Browsers block audio until a user gesture. Prime (create + resume) the
+// context on the first interaction so later programmatic sounds can play.
+if (typeof window !== 'undefined') {
+  const prime = () => {
+    try {
+      audio()
+    } catch {
+      /* ignore */
+    }
+    window.removeEventListener('pointerdown', prime)
+    window.removeEventListener('keydown', prime)
+    window.removeEventListener('touchstart', prime)
+  }
+  window.addEventListener('pointerdown', prime)
+  window.addEventListener('keydown', prime)
+  window.addEventListener('touchstart', prime)
+}
+
 function tone(
   freq: number,
   start: number,

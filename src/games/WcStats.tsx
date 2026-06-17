@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ref, serverTimestamp, set, update } from 'firebase/database'
+import { ref, serverTimestamp, set } from 'firebase/database'
 import { db } from '../firebase-config'
 import { useGameState } from '../hooks/useGameState'
 import { useCountdown, useServerTime } from '../hooks/useServerTime'
 import { Timer } from '../components/Timer'
 import { GameIntro } from '../components/GameIntro'
 import { playCorrect, playRoundStart } from '../utils/sounds'
+import { useRoundDriver } from './useRoundDriver'
 import questionsData from '../data/wc-stats-questions.json'
-import { INTRO_MS, type GameComponentProps } from './types'
+import type { GameComponentProps } from './types'
 
 interface StatQuestion {
   question: string
@@ -43,66 +44,17 @@ export function WcStats({
     rd?.index === 0 ? (rd?.startsAt ?? null) : null,
   )
 
-  // Host: init order once.
-  const initRef = useRef(false)
-  useEffect(() => {
-    if (!isHost || initRef.current || game.loading) return
-    if (rd?.order) {
-      initRef.current = true
-      return
-    }
-    initRef.current = true
-    const n = Math.min(config.rounds, QUESTIONS.length)
-    const order = [...QUESTIONS.keys()].sort(() => Math.random() - 0.5).slice(0, n)
-    const startsAt = serverNow() + INTRO_MS
-    void update(ref(db, `sessions/${sessionId}/games/${key}`), {
-      status: 'active',
-      startedAt: serverTimestamp(),
-      roundData: {
-        order,
-        index: 0,
-        phase: 'play',
-        startsAt,
-        deadline: startsAt + PER_ROUND * 1000,
-      },
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, game.loading, rd])
-
-  // Host: drive transitions.
-  const gameRef = useRef(game)
-  gameRef.current = game
-  useEffect(() => {
-    if (!isHost) return
-    const id = setInterval(() => {
-      const cur = gameRef.current.roundData as unknown as RoundData | undefined
-      if (!cur?.order) return
-      const now = serverNow()
-      const path = `sessions/${sessionId}/games/${key}`
-      const connected = players.filter((p) => p.connected)
-      const answers = gameRef.current.roundScores?.[String(cur.index)] ?? {}
-      const allAnswered =
-        connected.length > 0 && connected.every((p) => answers[p.id])
-      if (cur.phase === 'play' && (now >= cur.deadline || allAnswered)) {
-        void update(ref(db, path), {
-          'roundData/phase': 'reveal',
-          'roundData/deadline': now + 4000,
-        })
-      } else if (cur.phase === 'reveal' && now >= cur.deadline) {
-        if (cur.index + 1 < cur.order.length) {
-          void update(ref(db, path), {
-            'roundData/index': cur.index + 1,
-            'roundData/phase': 'play',
-            'roundData/deadline': now + PER_ROUND * 1000,
-          })
-        } else {
-          void update(ref(db, path), { status: 'done' })
-        }
-      }
-    }, 300)
-    return () => clearInterval(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, players])
+  // Clock driven by all clients via transactions (host-tab independent).
+  useRoundDriver({
+    sessionId,
+    gameKey: key,
+    itemCount: QUESTIONS.length,
+    numRounds: config.rounds,
+    perRoundMs: PER_ROUND * 1000,
+    revealMs: 4000,
+    rd: rd as never,
+    serverNow,
+  })
 
   if (game.loading || !rd?.order) {
     return <Card>Loading…</Card>

@@ -55,6 +55,7 @@ export function MathSpeed({
       secondsLeft={secondsLeft}
       total={total}
       finished={finished}
+      initialSolved={game.scores?.[playerId]?.value ?? 0}
     />
   )
 }
@@ -66,6 +67,7 @@ function PlayerView({
   secondsLeft,
   total,
   finished,
+  initialSolved,
 }: {
   sessionId: string
   playerId: string
@@ -73,17 +75,19 @@ function PlayerView({
   secondsLeft: number
   total: number
   finished: boolean
+  initialSolved: number
 }) {
   const [question, setQuestion] = useState(generateMathQuestion)
   const [input, setInput] = useState('')
-  const [solved, setSolved] = useState(0)
+  // Seed from any previously-saved score so a mid-game refresh doesn't reset it.
+  const [solved, setSolved] = useState(initialSolved)
   const [flash, setFlash] = useState<'correct' | 'wrong' | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Persist the final (and running) score.
+  // Persist the running score (never lower it, in case of races).
   const writeScore = (value: number) =>
     void set(ref(db, `sessions/${sessionId}/games/${gameKey}/scores/${playerId}`), {
-      value,
+      value: Math.max(value, initialSolved),
       timestamp: serverTimestamp(),
     })
 
