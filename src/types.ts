@@ -14,6 +14,9 @@ export type GameId =
   | 'emojiRiddles'
   | 'wcStats'
   | 'languageGuessing'
+  | 'bestAnswer'
+  | 'truthsLies'
+  | 'onAScale'
 
 export interface Player {
   id: string

@@ -6,6 +6,7 @@ import { useSession } from '../hooks/useSession'
 import { useGameState } from '../hooks/useGameState'
 import { GAMES, GAME_BY_ID } from '../utils/games'
 import { GAME_COMPONENTS } from '../games/registry'
+import { scalePoints } from '../games/OnAScale'
 import { computeRawScores } from '../utils/gameScoring'
 import { calculateGameScores } from '../utils/scoring'
 import {
@@ -522,6 +523,30 @@ function HostActiveGame({
   const GameComponent = GAME_COMPONENTS[gameId]
 
   function endAndReveal() {
+    // On a Scale scores by closeness for the single guesser (not by ranking).
+    if (gameId === 'onAScale') {
+      const rd = game.raw?.roundData as
+        | { secret?: number; guess?: number; guesserId?: string }
+        | undefined
+      const guesserId = rd?.guesserId
+      const pts = scalePoints(rd?.guess, rd?.secret ?? 0)
+      const guesser = players.find((p) => p.id === guesserId)
+      const raw = guesserId ? { [guesserId]: pts } : {}
+      const ipUpdates = guesserId ? { [guesserId]: pts } : {}
+      const gpUpdates = guesser?.team ? { [guesser.team]: pts } : {}
+      void applyScoresAndReveal(
+        sessionId,
+        gameId,
+        round,
+        raw,
+        ipUpdates,
+        gpUpdates,
+        players,
+        teams,
+      )
+      return
+    }
+
     const raw = computeRawScores(gameId, game)
     const { ipUpdates, gpUpdates } = calculateGameScores(raw, players, teams, true)
     void applyScoresAndReveal(

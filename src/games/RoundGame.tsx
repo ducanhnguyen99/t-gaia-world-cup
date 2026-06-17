@@ -326,23 +326,30 @@ function SubRound<T>({
               </button>
             </motion.div>
           ) : (
-            <motion.div
-              key="choice"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="grid grid-cols-2 gap-3"
-            >
-              {cfg.answer.type === 'choice' &&
-                cfg.answer.options(item).map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => pickChoice(opt)}
-                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-lg font-semibold transition hover:border-magenta hover:bg-white/10"
-                  >
-                    {opt}
-                  </button>
-                ))}
-            </motion.div>
+            (() => {
+              const opts =
+                cfg.answer.type === 'choice' ? cfg.answer.options(item) : []
+              // Single column for long options (e.g. full sentences).
+              const longOpts = opts.some((o) => o.length > 24)
+              return (
+                <motion.div
+                  key="choice"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={`grid gap-3 ${longOpts ? 'grid-cols-1' : 'grid-cols-2'}`}
+                >
+                  {opts.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => pickChoice(opt)}
+                      className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 font-semibold transition hover:border-magenta hover:bg-white/10"
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </motion.div>
+              )
+            })()
           )}
         </AnimatePresence>
       </motion.div>

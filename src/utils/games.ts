@@ -44,6 +44,27 @@ export const GAMES: GameMeta[] = [
     blurb: 'Which language is it? First correct wins',
     howTo: 'A phrase appears in a language. Tap which language it is from the four options. First correct wins — but a wrong tap locks you out for that round, so be sure!',
   },
+  {
+    id: 'bestAnswer',
+    name: 'Best Answer',
+    icon: '😂',
+    blurb: 'Write the funniest answer — then everyone votes',
+    howTo: 'A prompt appears. Type the funniest answer you can. Then everyone votes for their favourite (you can’t vote for your own). Every vote your answer gets is a point!',
+  },
+  {
+    id: 'truthsLies',
+    name: 'Truths & Lies',
+    icon: '🕵️',
+    blurb: 'Spot the lie among the statements',
+    howTo: 'Three statements appear — two true, one a lie. Vote for the one you think is the LIE. Guess right to score. (In personal rounds you also write your own!)',
+  },
+  {
+    id: 'onAScale',
+    name: 'On a Scale',
+    icon: '🎚️',
+    blurb: 'One guesser reads the room to find a secret number',
+    howTo: 'A secret number 1–10 is shown to everyone except the guesser. The guesser asks people the suggested questions; answer with hints at the number (don’t say it!). The guesser then guesses — closer = more points.',
+  },
 ]
 
 export const GAME_BY_ID: Record<GameId, GameMeta> = Object.fromEntries(

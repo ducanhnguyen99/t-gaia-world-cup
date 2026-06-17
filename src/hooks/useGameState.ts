@@ -8,6 +8,8 @@ export interface GameState {
   roundData: Record<string, unknown>
   scores: Record<string, { value: number; timestamp: number; details?: unknown }>
   roundScores: Record<string, Record<string, unknown>>
+  /** Full raw node — for games with extra sub-trees (submissions, votes, …). */
+  raw: Record<string, unknown>
   loading: boolean
 }
 
@@ -17,6 +19,7 @@ const EMPTY: GameState = {
   roundData: {},
   scores: {},
   roundScores: {},
+  raw: {},
   loading: true,
 }
 
@@ -44,6 +47,7 @@ export function useGameState(
         roundData: val?.roundData ?? {},
         scores: val?.scores ?? {},
         roundScores: val?.roundScores ?? {},
+        raw: val ?? {},
         loading: false,
       })
     })

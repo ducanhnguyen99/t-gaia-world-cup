@@ -31,8 +31,27 @@ export function computeRawScores(
     return computeWcStats(game)
   }
 
+  if (gameId === 'bestAnswer') {
+    return computeBestAnswer(game)
+  }
+
   // First-correct-submit games: points by submission order per sub-round.
   return computeFirstSubmit(game)
+}
+
+/** Best Answer: raw score = total votes an author's answers received. */
+function computeBestAnswer(game: GameState): Record<string, number> {
+  const totals: Record<string, number> = {}
+  const votesByRound = (game.raw?.votes ?? {}) as Record<
+    string,
+    Record<string, string>
+  >
+  for (const round of Object.values(votesByRound)) {
+    for (const author of Object.values(round)) {
+      totals[author] = (totals[author] ?? 0) + 1
+    }
+  }
+  return totals
 }
 
 function computeFirstSubmit(game: GameState): Record<string, number> {

@@ -1,0 +1,20 @@
+[
+  { "statements": ["Brazil has won the FIFA World Cup 5 times", "Italy has won the World Cup 4 times", "England has won the World Cup 3 times"], "lie": 2 },
+  { "statements": ["A goalkeeper can be shown a red card", "A match can legally end 0–0 after extra time", "A throw-in can score a goal directly"], "lie": 2 },
+  { "statements": ["Python was named after Monty Python", "Java was named after an island", "C++ was named after a coffee brand"], "lie": 2 },
+  { "statements": ["The first World Cup was held in 1930", "The first World Cup was hosted by Uruguay", "The first World Cup had 32 teams"], "lie": 2 },
+  { "statements": ["HTTP status 404 means 'Not Found'", "HTTP status 200 means 'OK'", "HTTP status 500 means 'Access Denied'"], "lie": 2 },
+  { "statements": ["A standard football match is 90 minutes", "A football pitch must be exactly 100m long", "There are 11 players per side at kickoff"], "lie": 1 },
+  { "statements": ["The Eiffel Tower can be 15 cm taller in summer", "Honey never spoils", "Bananas grow pointing downwards"], "lie": 2 },
+  { "statements": ["RAM stands for Random Access Memory", "CPU stands for Central Processing Unit", "HTML stands for Hyper Transfer Markup Language"], "lie": 2 },
+  { "statements": ["Lionel Messi is from Argentina", "Cristiano Ronaldo is from Portugal", "Kylian Mbappé is from Belgium"], "lie": 2 },
+  { "statements": ["The sun is mostly hydrogen", "Lightning is hotter than the sun's surface", "Humans have three lungs"], "lie": 2 },
+  { "statements": ["Git was created by Linus Torvalds", "Linux was created by Linus Torvalds", "JavaScript was created by Linus Torvalds"], "lie": 2 },
+  { "statements": ["A penalty is taken from 11 metres", "The World Cup trophy is made of solid gold", "Red and yellow cards were introduced in 1970"], "lie": 1 },
+  { "statements": ["Octopuses have three hearts", "Sharks are mammals", "A group of flamingos is called a flamboyance"], "lie": 1 },
+  { "statements": ["The 2022 World Cup was held in Qatar", "The 2018 World Cup was held in Russia", "The 2014 World Cup was held in Germany"], "lie": 2 },
+  { "statements": ["A byte is 8 bits", "A kilobyte is 1000 (or 1024) bytes", "A pixel is a unit of sound"], "lie": 2 },
+  { "statements": ["Telekom's brand colour is magenta", "The 'T' in T-Mobile stands for Telekom", "Deutsche Telekom is headquartered in Munich"], "lie": 2 },
+  { "statements": ["Cheetahs are the fastest land animal", "Penguins can fly short distances", "Some turtles can breathe through their rear end"], "lie": 1 },
+  { "statements": ["Mount Everest is the tallest mountain above sea level", "The Pacific is the largest ocean", "There are 10 continents"], "lie": 2 }
+]
