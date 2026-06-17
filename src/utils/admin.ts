@@ -100,10 +100,35 @@ export async function startGame(
     nextGame: null,
     gameConfig: config,
   })
+  // The instance is created "armed" but not begun — players see the
+  // instructions until the admin presses Begin (which sets startedAt).
   await update(ref(db, `sessions/${sessionId}/games/${gameId}_${round}`), {
     status: 'active',
+  })
+}
+
+/** Begin a game that was started/armed: sets startedAt so the clock runs. */
+export async function beginGame(
+  sessionId: string,
+  gameId: GameId,
+  round: number,
+) {
+  await update(ref(db, `sessions/${sessionId}/games/${gameId}_${round}`), {
     startedAt: serverTimestamp(),
   })
+}
+
+/** Reset all IP (players) and GP (teams) to zero — for when scoring goes wrong. */
+export async function resetScores(
+  sessionId: string,
+  players: Player[],
+  teams: Team[],
+) {
+  const updates: Record<string, unknown> = {}
+  for (const p of players) updates[`players/${p.id}/ip`] = 0
+  for (const t of teams) updates[`teams/${t.id}/gp`] = 0
+  if (Object.keys(updates).length)
+    await update(ref(db, `sessions/${sessionId}`), updates)
 }
 
 /** "Play Again": same game, next round, fresh instance. Returns the new round. */

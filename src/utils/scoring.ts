@@ -54,11 +54,11 @@ export function calculateGameScores(
   const teamTotals = teams.map((team) => {
     const members = players.filter((p) => p.team === team.id && p.id in gameScores)
     const total = members.reduce((sum, p) => sum + gameScores[p.id], 0)
-    // For deviation games, rank by average rather than sum.
-    const value = higherIsBetter
-      ? total
-      : members.length
-        ? total / members.length
+    // Rank teams by AVERAGE per member so smaller teams aren't disadvantaged.
+    const value = members.length
+      ? total / members.length
+      : higherIsBetter
+        ? -Infinity
         : Number.POSITIVE_INFINITY
     return { id: team.id, value, hasMembers: members.length > 0 }
   })

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ref, serverTimestamp, update } from 'firebase/database'
+import { ref, update } from 'firebase/database'
 import { db } from '../firebase-config'
 import { useGameState } from '../hooks/useGameState'
 import { useServerTime } from '../hooks/useServerTime'
 import { Timer } from '../components/Timer'
 import { GameIntro } from '../components/GameIntro'
+import { GameReady } from '../components/GameReady'
 import { playCorrect, playRoundStart } from '../utils/sounds'
 import { seededShuffle } from '../utils/scramble'
 import questions from '../data/scale-questions.json'
@@ -49,10 +50,10 @@ export function OnAScale({
     return () => clearInterval(id)
   }, [])
 
-  // Host: init once (pick secret, guesser, questions).
+  // Host: init once the host has pressed Begin (startedAt set).
   const initRef = useRef(false)
   useEffect(() => {
-    if (!isHost || initRef.current || game.loading) return
+    if (!isHost || initRef.current || game.loading || !game.startedAt) return
     if (rd?.guesserId) {
       initRef.current = true
       return
@@ -66,8 +67,6 @@ export function OnAScale({
     const qs = seededShuffle(QUESTIONS, `${key}`).slice(0, 4)
     const startsAt = serverNow() + INTRO_MS
     void update(ref(db, `sessions/${sessionId}/games/${key}`), {
-      status: 'active',
-      startedAt: serverTimestamp(),
       roundData: {
         secret,
         guesserId: guesser.id,
@@ -78,7 +77,7 @@ export function OnAScale({
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, game.loading, rd, players])
+  }, [isHost, game.loading, game.startedAt, rd, players])
 
   // Host: time out the guess phase.
   const gameRef = useRef(game)
@@ -98,7 +97,9 @@ export function OnAScale({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHost])
 
-  if (game.loading || !rd?.guesserId) return <Card>Loading…</Card>
+  if (game.loading) return <Card>Loading…</Card>
+  if (!game.startedAt) return <GameReady gameId="onAScale" />
+  if (!rd?.guesserId) return <Card>Loading…</Card>
 
   const introLeft =
     rd.startsAt && rd.phase === 'guess'

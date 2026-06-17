@@ -31,14 +31,21 @@ function evaluate(nums: number[], ops: string[]): number {
 /** Generate one valid question (positive integer answer). */
 export function generateMathQuestion(): MathQuestion {
   for (let attempt = 0; attempt < 200; attempt++) {
-    const count = 5 + Math.floor(Math.random() * 3) // 5–7 operations
+    const count = 3 + Math.floor(Math.random() * 2) // 3–4 operations
     const nums = Array.from({ length: count + 1 }, () =>
       Math.floor(Math.random() * 9) + 1,
     )
-    const ops = Array.from(
-      { length: count },
-      () => OPS[Math.floor(Math.random() * OPS.length)],
-    )
+    // At most one × in the whole expression (and never chained), so it stays
+    // quick mental maths rather than a multiplication marathon.
+    let usedMultiply = false
+    const ops = Array.from({ length: count }, () => {
+      const allowMultiply = !usedMultiply && Math.random() < 0.5
+      const op = allowMultiply
+        ? OPS[Math.floor(Math.random() * OPS.length)]
+        : (['+', '-'] as const)[Math.floor(Math.random() * 2)]
+      if (op === '×') usedMultiply = true
+      return op
+    })
     const answer = evaluate(nums, ops)
     if (answer > 0 && Number.isInteger(answer)) {
       const display = nums

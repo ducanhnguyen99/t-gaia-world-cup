@@ -6,6 +6,7 @@ import { useGameState } from '../hooks/useGameState'
 import { useCountdown, useServerTime } from '../hooks/useServerTime'
 import { Timer } from '../components/Timer'
 import { GameIntro } from '../components/GameIntro'
+import { GameReady } from '../components/GameReady'
 import { playCorrect, playRoundStart } from '../utils/sounds'
 import { useRoundDriver } from './useRoundDriver'
 import questionsData from '../data/wc-stats-questions.json'
@@ -44,7 +45,8 @@ export function WcStats({
     rd?.index === 0 ? (rd?.startsAt ?? null) : null,
   )
 
-  // Clock driven by all clients via transactions (host-tab independent).
+  // Clock driven by all clients via transactions (host-tab independent),
+  // gated until the host presses Begin (startedAt set).
   useRoundDriver({
     sessionId,
     gameKey: key,
@@ -54,11 +56,12 @@ export function WcStats({
     revealMs: 4000,
     rd: rd as never,
     serverNow,
+    armed: !!game.startedAt,
   })
 
-  if (game.loading || !rd?.order) {
-    return <Card>Loading…</Card>
-  }
+  if (game.loading) return <Card>Loading…</Card>
+  if (!game.startedAt) return <GameReady gameId="wcStats" />
+  if (!rd?.order) return <Card>Loading…</Card>
   if (game.status === 'done') {
     return (
       <Card>

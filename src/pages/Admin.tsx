@@ -12,12 +12,14 @@ import { calculateGameScores } from '../utils/scoring'
 import {
   applyExternalScore,
   applyScoresAndReveal,
+  beginGame,
   createSession,
   hardResetSession,
   playAgain,
   randomizeTeams,
   removePlayer,
   resetGames,
+  resetScores,
   setNextGame,
   setStatus,
   startGame,
@@ -290,6 +292,14 @@ function AdminDashboard() {
         {/* Danger zone */}
         <Section title="Emergency">
           <div className="flex flex-wrap gap-2">
+            <DangerButton
+              onClick={() => {
+                if (confirm('Reset every player IP and team GP to 0?'))
+                  resetScores(sessionId, session.players, session.teams)
+              }}
+            >
+              Reset All Scores to 0
+            </DangerButton>
             <DangerButton onClick={() => resetGames(sessionId)}>
               Reset Games (keep players/teams)
             </DangerButton>
@@ -302,6 +312,10 @@ function AdminDashboard() {
               Hard Reset Session
             </DangerButton>
           </div>
+          <p className="mt-2 text-xs text-slate-500">
+            To remove points from one player/team, use “External Game Scores”
+            above with a <b>negative</b> number.
+          </p>
         </Section>
       </div>
     </Layout>
@@ -561,24 +575,37 @@ function HostActiveGame({
     )
   }
 
+  const begun = !!game.startedAt
+
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-magenta/20 px-3 py-1 text-sm font-semibold text-magenta-bright">
           {GAME_BY_ID[gameId].icon} {GAME_BY_ID[gameId].name} · Round {round}
         </span>
-        <button
-          onClick={endAndReveal}
-          className="rounded-lg bg-magenta px-4 py-2 text-sm font-bold shadow-glow hover:bg-magenta-bright"
-        >
-          ⏹ End &amp; Reveal Scores
-        </button>
-        <button
-          onClick={() => playAgain(sessionId, gameId, round, config)}
-          className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20"
-        >
-          🔁 Play Again
-        </button>
+        {!begun ? (
+          <button
+            onClick={() => beginGame(sessionId, gameId, round)}
+            className="rounded-lg bg-emerald-500 px-5 py-2 text-sm font-bold text-black shadow-glow transition hover:bg-emerald-400"
+          >
+            ▶ Begin (players are reading the instructions)
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={endAndReveal}
+              className="rounded-lg bg-magenta px-4 py-2 text-sm font-bold shadow-glow hover:bg-magenta-bright"
+            >
+              ⏹ End &amp; Reveal Scores
+            </button>
+            <button
+              onClick={() => playAgain(sessionId, gameId, round, config)}
+              className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20"
+            >
+              🔁 Play Again
+            </button>
+          </>
+        )}
       </div>
       <div className="rounded-xl bg-black/20 p-2">
         <GameComponent

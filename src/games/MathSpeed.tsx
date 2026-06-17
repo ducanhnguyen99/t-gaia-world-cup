@@ -6,6 +6,7 @@ import { useGameState } from '../hooks/useGameState'
 import { useCountdown } from '../hooks/useServerTime'
 import { Timer } from '../components/Timer'
 import { GameIntro } from '../components/GameIntro'
+import { GameReady } from '../components/GameReady'
 import { generateMathQuestion } from '../utils/mathQuestions'
 import { playCorrect, playWrong } from '../utils/sounds'
 import { INTRO_MS, type GameComponentProps } from './types'
@@ -29,7 +30,7 @@ export function MathSpeed({
   const finished = deadline != null && secondsLeft <= 0
 
   if (!game.startedAt) {
-    return <Centered>⚡ Get ready…</Centered>
+    return <GameReady gameId="mathSpeed" />
   }
 
   if (introLeft > 0) {
@@ -213,10 +214,3 @@ function HostDashboard({
   )
 }
 
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="glass mx-auto mt-8 max-w-lg p-10 text-center text-2xl font-bold">
-      {children}
-    </div>
-  )
-}

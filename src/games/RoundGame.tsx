@@ -6,6 +6,7 @@ import { useGameState } from '../hooks/useGameState'
 import { useCountdown, useServerTime } from '../hooks/useServerTime'
 import { Timer } from '../components/Timer'
 import { GameIntro } from '../components/GameIntro'
+import { GameReady } from '../components/GameReady'
 import { playCorrect, playRoundStart, playWrong } from '../utils/sounds'
 import { useRoundDriver } from './useRoundDriver'
 import type { GameId, Player } from '../types'
@@ -63,7 +64,8 @@ export function RoundGame<T>({
     rd?.index === 0 ? (rd?.startsAt ?? null) : null,
   )
 
-  // Clock is driven by all clients via transactions (host-tab independent).
+  // Clock is driven by all clients via transactions (host-tab independent),
+  // but only once the host has pressed Begin (startedAt set).
   useRoundDriver({
     sessionId,
     gameKey: key,
@@ -73,9 +75,22 @@ export function RoundGame<T>({
     revealMs: 3000,
     rd,
     serverNow,
+    armed: !!game.startedAt,
   })
 
-  if (game.loading || !rd?.order) {
+  if (game.loading) {
+    return (
+      <div className="glass mx-auto mt-8 max-w-lg p-10 text-center text-xl">
+        Loading…
+      </div>
+    )
+  }
+
+  if (!game.startedAt) {
+    return <GameReady gameId={cfg.gameId} />
+  }
+
+  if (!rd?.order) {
     return (
       <div className="glass mx-auto mt-8 max-w-lg p-10 text-center text-xl">
         Loading round…

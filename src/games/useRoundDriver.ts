@@ -39,6 +39,8 @@ export function useRoundDriver(opts: {
   revealMs?: number
   rd: DriverRoundData | undefined
   serverNow: () => number
+  /** Only run once the host has pressed Begin (startedAt set). */
+  armed: boolean
 }) {
   const {
     sessionId,
@@ -49,7 +51,10 @@ export function useRoundDriver(opts: {
     revealMs = 3000,
     rd,
     serverNow,
+    armed,
   } = opts
+  const armedRef = useRef(armed)
+  armedRef.current = armed
 
   const rdRef = useRef(rd)
   rdRef.current = rd
@@ -62,6 +67,7 @@ export function useRoundDriver(opts: {
     const statusRef = ref(db, `sessions/${sessionId}/games/${gameKey}/status`)
 
     const id = setInterval(() => {
+      if (!armedRef.current) return // wait for the host to press Begin
       const now = nowRef.current()
       const cur = rdRef.current
 

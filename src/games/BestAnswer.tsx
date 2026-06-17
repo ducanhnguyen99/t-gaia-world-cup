@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { onValue, ref, serverTimestamp, set, update } from 'firebase/database'
+import { onValue, ref, set, update } from 'firebase/database'
 import { db } from '../firebase-config'
 import { useServerTime } from '../hooks/useServerTime'
 import { Timer } from '../components/Timer'
 import { GameIntro } from '../components/GameIntro'
+import { GameReady } from '../components/GameReady'
 import { playCorrect, playRoundStart } from '../utils/sounds'
 import { seededShuffle } from '../utils/scramble'
 import prompts from '../data/best-answer-prompts.json'
@@ -25,6 +26,7 @@ interface RoundData {
 }
 interface Node {
   status?: string
+  startedAt?: number
   roundData?: RoundData
   submissions?: Record<string, Record<string, { text: string }>>
   votes?: Record<string, Record<string, string>>
@@ -56,10 +58,10 @@ export function BestAnswer({
   const nodeRef = useRef(node)
   nodeRef.current = node
 
-  // Host: init order once.
+  // Host: init order once the host has pressed Begin (startedAt set).
   const initRef = useRef(false)
   useEffect(() => {
-    if (!isHost || initRef.current) return
+    if (!isHost || initRef.current || !node.startedAt) return
     if (rd?.order) {
       initRef.current = true
       return
@@ -69,8 +71,6 @@ export function BestAnswer({
     const order = [...PROMPTS.keys()].sort(() => Math.random() - 0.5).slice(0, n)
     const startsAt = serverNow() + INTRO_MS
     void update(ref(db, `sessions/${sessionId}/games/${key}`), {
-      status: 'active',
-      startedAt: serverTimestamp(),
       roundData: {
         order,
         index: 0,
@@ -80,7 +80,7 @@ export function BestAnswer({
       },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, rd])
+  }, [isHost, rd, node.startedAt])
 
   // Host: drive phase transitions.
   useEffect(() => {
@@ -126,6 +126,9 @@ export function BestAnswer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHost, players])
 
+  if (!node.startedAt) {
+    return <GameReady gameId="bestAnswer" />
+  }
   if (!rd?.order) {
     return <Card>Loading…</Card>
   }

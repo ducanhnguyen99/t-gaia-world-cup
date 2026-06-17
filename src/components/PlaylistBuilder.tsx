@@ -29,6 +29,8 @@ export function PlaylistBuilder({
 
   const gameInProgress =
     status === 'playing' || status === 'external' || status === 'revealing'
+  // Block advancing while a game is live but not yet scored.
+  const mustFinishFirst = status === 'playing' || status === 'external'
 
   function persist(next: PlanStep[]) {
     void savePlan(sessionId, next)
@@ -154,12 +156,23 @@ export function PlaylistBuilder({
           </button>
           <button
             onClick={() => advancePlan(sessionId, planIndex, steps)}
-            disabled={planIndex >= steps.length}
+            disabled={planIndex >= steps.length || mustFinishFirst}
+            title={
+              mustFinishFirst
+                ? 'End & Reveal the current game first so scores are applied'
+                : undefined
+            }
             className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold transition hover:bg-white/20 disabled:opacity-40"
           >
             ⏭ Next step
           </button>
         </div>
+      )}
+      {mustFinishFirst && (
+        <p className="-mt-2 text-xs text-amber-300">
+          ⚠️ A game is live — click <b>End &amp; Reveal</b> in Game Control to
+          apply scores before moving on.
+        </p>
       )}
 
       {/* Add steps */}

@@ -59,3 +59,32 @@ export function scramble(word: string): string {
 export function normalize(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, ' ')
 }
+
+/**
+ * Scramble only the *middle* letters of each word, keeping the first and last
+ * letter in place (typoglycemia style) so it stays readable. Works on single
+ * words and whole sentences. Deterministic (seeded by the text).
+ */
+export function scrambleReadable(text: string): string {
+  let salt = 0
+  let out = text
+  while (out === text && salt < 30) {
+    const rng = mulberry32(hash(text) + salt * 40503)
+    out = text
+      .split(/(\s+)/) // keep whitespace tokens
+      .map((token) => {
+        if (token.length <= 3 || /\s/.test(token)) return token
+        const first = token[0]
+        const last = token[token.length - 1]
+        const mid = token.slice(1, -1).split('')
+        for (let i = mid.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1))
+          ;[mid[i], mid[j]] = [mid[j], mid[i]]
+        }
+        return first + mid.join('') + last
+      })
+      .join('')
+    salt++
+  }
+  return out
+}
